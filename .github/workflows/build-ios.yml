@@ -1,1 +1,45 @@
+name: Build Universal iOS IPA
 
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Build Unity iOS
+      uses: game-ci/unity-builder@v2
+      with:
+        unityVersion: 2022.3.10f1
+        targetPlatform: iOS
+        buildMethod: BuildScript.BuildIOS
+    
+    - name: Package .ipa
+      run: |
+        ls -la build/iOS/
+        cd build/iOS
+        mkdir -p Payload
+        cp -r ./AmongShawarma.app ./Payload/
+        zip -r AmongShawarma.ipa Payload/
+        ls -la
+      shell: bash
+    
+    - name: Upload Release Asset
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: latest
+        name: "AmongShawarma - Universal Build (Unsigned)"
+        files: |
+          build/iOS/AmongShawarma.ipa
+        draft: false
+        prerelease: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
